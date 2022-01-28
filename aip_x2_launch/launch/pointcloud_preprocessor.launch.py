@@ -72,6 +72,24 @@ def launch_setup(context, *args, **kwargs):
         }],
     )
 
+    vector_map_filter_component = ComposableNode(
+        package="pointcloud_preprocessor",
+        plugin="pointcloud_preprocessor::Lanelet2MapFilterComponent",
+        name="vector_map_filter_node",
+        remappings=[
+            ('input/pointcloud', '/perception/obstacle_segmentation/pointcloud'),
+            ('input/vector_map', '/map/vector_map'),
+            ('output', 'vector_map_filtered/pointcloud'),
+        ],
+        parameters=[{
+            'voxel_size_x': 0.25,
+            'voxel_size_y': 0.25,
+        }],
+        extra_arguments=[{
+            'use_intra_process_comms': False  # this node has QoS of transient local
+        }],
+    )
+
     # set container to run all required components in the same process
     container = ComposableNodeContainer(
         name=LaunchConfiguration("container_name"),
@@ -94,6 +112,7 @@ def launch_setup(context, *args, **kwargs):
         composable_node_descriptions=[
             concat_component,
             voxel_based_compare_map_filter_component,
+            vector_map_filter_component
         ],
         target_container=target_container,
         condition=IfCondition(LaunchConfiguration("use_concat_filter")),
