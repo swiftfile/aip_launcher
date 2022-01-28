@@ -53,6 +53,25 @@ def launch_setup(context, *args, **kwargs):
         extra_arguments=[{"use_intra_process_comms": LaunchConfiguration("use_intra_process")}],
     )
 
+    voxel_based_compare_map_filter_component = ComposableNode(
+        package="compare_map_segmentation",
+        plugin="compare_map_segmentation::VoxelBasedCompareMapFilterComponent",
+        name="voxel_based_compare_map_filter_node",
+        remappings=[
+            ("input", "/perception/obstacle_segmentation/pointcloud"),
+            ("map", "/map/pointcloud_map"),
+            ("output", "compare_map_filtered/pointcloud"),
+        ],
+        parameters=[
+            {
+                "distance_threshold": 0.7,
+            }
+        ],
+        extra_arguments=[{
+            "use_intra_process_comms": False  # this node has QoS of transient local
+        }],
+    )
+
     # set container to run all required components in the same process
     container = ComposableNodeContainer(
         name=LaunchConfiguration("container_name"),
@@ -72,7 +91,10 @@ def launch_setup(context, *args, **kwargs):
 
     # load concat or passthrough filter
     concat_loader = LoadComposableNodes(
-        composable_node_descriptions=[concat_component],
+        composable_node_descriptions=[
+            concat_component,
+            voxel_based_compare_map_filter_component,
+        ],
         target_container=target_container,
         condition=IfCondition(LaunchConfiguration("use_concat_filter")),
     )
